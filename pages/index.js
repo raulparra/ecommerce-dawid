@@ -1,10 +1,10 @@
 import Layout from "@/components/Layout";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 
 export default function Home() {
 
   const { data: session} = useSession();
-  console.log(session);
+  
   if (!session) return;
     
   return (
@@ -18,6 +18,7 @@ export default function Home() {
           <span className="px-2">
             { session?.user?.name }
           </span>
+          <button onClick={()=> signOut()}>salir</button>
         </div>
       </div>
     </Layout>
