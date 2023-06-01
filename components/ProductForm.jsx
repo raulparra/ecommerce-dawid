@@ -1,26 +1,29 @@
 import axios from 'axios';
+import { ReactSortable } from 'react-sortablejs';
 import { useRouter } from 'next/router';
 import { useState } from 'react';
+import Spinner from './Spinner';
 
 const ProductForm = ({ 
     _id,
     nombre: existingNombre, 
     descripcion: existingDescripcion, 
     precio: existingPrecio,
-    imagenes,
+    imagenes: existingImagenes,
     /* imagenes: existingImagenes */ }) => {
 
     const [nombre, setNombre] = useState(existingNombre || '');
     const [descripcion, setDescripcion] = useState(existingDescripcion || '');
     const [precio, setPrecio] = useState(existingPrecio || '');
-    /* const [imagenes, setImagenes] = useState(existingImagenes || ''); */
+    const [imagenes, setImagenes] = useState(existingImagenes || []);
     const [goToProducs, setGoToProducts] = useState(false);
+    const [isUploading, setIsUploading] = useState(false)
     
     const router = useRouter();
 
     const crearProducto = async (e) => {
         e.preventDefault();
-        const data = { nombre, descripcion, precio, _id };
+        const data = { nombre, descripcion, precio,imagenes, _id };
         if (_id) {
             //update
             
@@ -29,6 +32,7 @@ const ProductForm = ({
             //create
             
             await axios.post('/api/products', data);
+           
             
         }
         setGoToProducts(true);
@@ -40,13 +44,24 @@ const ProductForm = ({
     const uploadImages = async (e) => {
         const files = e.target?.files;
         if (files.length > 0) {
+            setIsUploading(true);
             const data = new FormData();
             for (const file of files){
                 data.append('file', file)
             }
+           /*  const res =  await fetch('/api/upload', {
+                method: 'POST',
+                body: data,
+            }) */
             const res = await axios.post('/api/upload', data);
-            console.log(res.data);
+            setImagenes(oldImagenes => {
+                return [...oldImagenes, ...res.data.links];
+            });
+            setIsUploading(false);
         }
+    }
+    const updateImagesOrder = ( imagenes ) => {
+        setImagenes(imagenes);
     }
   return (
     <form onSubmit={crearProducto}>
@@ -59,7 +74,22 @@ const ProductForm = ({
                 onChange={(e) => setNombre(e.target.value)}
             />
             <label>Imágenes </label>
-            <div>
+            <div className='mb-2 flex flex-wrap gap-2'>
+                <ReactSortable
+                list={ imagenes }
+                className='flex flex-wrap gap-2'
+                setList={ updateImagesOrder }>
+                    { imagenes?.length && imagenes.map(link =>(
+                        <div key={ link } className='h-24 '>
+                        <img src= { link } alt="picture product" className='rounded-lg'/>
+                        </div>
+                    ))}
+                </ReactSortable>
+                { isUploading && (
+                    <div className='w-24 h-24 flex items-center'>
+                        <Spinner/>
+                    </div>
+                )}
                 <label className='w-24 h-24 border flex flex-col justify-center items-center text-gray-500 rounded-md bg-gray-200 cursor-pointer hover:border-gray-400'>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
