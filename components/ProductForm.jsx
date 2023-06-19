@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { ReactSortable } from 'react-sortablejs';
 import { useRouter } from 'next/router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Spinner from './Spinner';
 
 const ProductForm = ({ 
@@ -10,6 +10,8 @@ const ProductForm = ({
     descripcion: existingDescripcion, 
     precio: existingPrecio,
     imagenes: existingImagenes,
+    selectedCategory: existingCategory,
+    properties:existingProperties,
     /* imagenes: existingImagenes */ }) => {
 
     const [nombre, setNombre] = useState(existingNombre || '');
@@ -17,13 +19,31 @@ const ProductForm = ({
     const [precio, setPrecio] = useState(existingPrecio || '');
     const [imagenes, setImagenes] = useState(existingImagenes || []);
     const [goToProducs, setGoToProducts] = useState(false);
-    const [isUploading, setIsUploading] = useState(false)
-    
+    const [isUploading, setIsUploading] = useState(false);
+    const [categories, setCategories] = useState([]);
+    const [selectedCategory, setSelectedCategory] = useState(existingCategory || '');
+    const [productProperties,setProductProperties] = useState(existingProperties || {});
+
     const router = useRouter();
+
+    useEffect(() => {
+      axios.get('/api/categories').then(result => {
+       setCategories( result.data );
+      })
+    }, [])
+    
 
     const crearProducto = async (e) => {
         e.preventDefault();
-        const data = { nombre, descripcion, precio,imagenes, _id };
+        const data = { 
+            nombre, 
+            descripcion, 
+            precio,
+            imagenes, 
+            _id, 
+            selectedCategory, 
+            properties: productProperties };
+            
         if (_id) {
             //update
             
@@ -49,10 +69,7 @@ const ProductForm = ({
             for (const file of files){
                 data.append('file', file)
             }
-           /*  const res =  await fetch('/api/upload', {
-                method: 'POST',
-                body: data,
-            }) */
+          
             const res = await axios.post('/api/upload', data);
             setImagenes(oldImagenes => {
                 return [...oldImagenes, ...res.data.links];
@@ -63,6 +80,23 @@ const ProductForm = ({
     const updateImagesOrder = ( imagenes ) => {
         setImagenes(imagenes);
     }
+
+    
+
+    const propertiesToFill =  [];
+    if (categories.length > 0  && selectedCategory){
+        let catInfo = categories.find(({_id}) => _id === selectedCategory );
+        console.log({catInfo});
+        propertiesToFill.push(...catInfo.properties);
+        console.log(propertiesToFill);
+        while(catInfo?.parent?._id){
+            const parentCat = categories.find(({_id}) => _id === catInfo?.parent?._id);
+            propertiesToFill.push(...parentCat.properties);
+            catInfo = parentCat;
+        }
+        
+    }
+
   return (
     <form onSubmit={crearProducto}>
             {/* <h1>Nuevo Producto</h1> */}
@@ -73,6 +107,24 @@ const ProductForm = ({
                 value={ nombre }
                 onChange={(e) => setNombre(e.target.value)}
             />
+            <label>Categoría</label>
+            <select 
+                value={ selectedCategory }
+                onChange={(e)=> setSelectedCategory(e.target.value)}
+            >
+                <option>Sin categoría</option>
+                { categories.length > 0 && categories.map(cat => (
+                    <option key={ cat._id } value={ cat._id }>{ cat.nombre }</option>
+                ))}
+            </select>
+            {
+                propertiesToFill.length > 0 &&  propertiesToFill.map(p =>(
+                    <div key={p.name}>
+                        { p.name}
+                    </div>
+                )
+                )
+            }
             <label>Imágenes </label>
             <div className='mb-2 flex flex-wrap gap-2'>
                 <ReactSortable
