@@ -167,7 +167,6 @@ const ProductForm = ({
                 value={ precio }
                 onChange={(e) => setPrecio(e.target.value)}
             />
-
             <button type='submit' className="btn-primary">Guardar</button>
         </form>
   )

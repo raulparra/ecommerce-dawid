@@ -125,7 +125,7 @@ const CategoriesPage = ({swal}) => {
                     onChange={e => setParentCategory(e.target.value)}
                     value={ parentCategory }
                 >
-                    <option value={ 0 }>Sin categoría</option>
+                    <option value="">Sin categoría</option>
                     {
                         categorias.length > 0 && categorias.map( categoria => (
                             <option key={ categoria._id } value={categoria._id}>{ categoria.nombre }</option>
